@@ -3,7 +3,7 @@ set -euo pipefail
 
 UV_VENV_DIR="${UV_VENV_DIR:-/mnt/data/envs/sgl-a100}"
 NIXL_DIR="${NIXL_DIR:-$HOME/nixl}"
-UCX_PATH="${UCX_PATH:-/mnt/data/ucx-1.19.0/lib/ucx}"
+UCX_PATH="${UCX_PATH:-/mnt/data/ucx-1.19.0}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-$UV_VENV_DIR}"
 
 ACTIVATE_SCRIPT="${UV_VENV_DIR}/bin/activate"
@@ -20,6 +20,12 @@ if uv pip show nixl >/dev/null 2>&1; then
   echo "nixl already installed in ${UV_VENV_DIR}; skipping."
   uv pip list | grep -E '^nixl[[:space:]]' || true
   exit 0
+fi
+
+if [[ ! -f "${UCX_PATH}/include/ucp/api/ucp.h" ]]; then
+  echo "UCX headers not found at: ${UCX_PATH}/include/ucp/api/ucp.h"
+  echo "Set UCX_PATH to the UCX install prefix (e.g. /mnt/data/ucx-1.19.0)."
+  exit 1
 fi
 
 uv pip install meson pybind11
