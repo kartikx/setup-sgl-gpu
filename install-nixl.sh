@@ -16,7 +16,13 @@ fi
 # shellcheck disable=SC1090
 source "$ACTIVATE_SCRIPT"
 
-uv pip install meson
+if uv pip show nixl >/dev/null 2>&1; then
+  echo "nixl already installed in ${UV_VENV_DIR}; skipping."
+  uv pip list | grep -E '^nixl[[:space:]]' || true
+  exit 0
+fi
+
+uv pip install meson pybind11
 
 if [[ -d "${NIXL_DIR}/.git" ]]; then
   git -C "$NIXL_DIR" pull --ff-only

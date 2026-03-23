@@ -2,6 +2,11 @@ export UCX_VERSION=1.19.0
 export UCX_INSTALL_DIR=/mnt/data/ucx-${UCX_VERSION}
 export CUDA_HOME=/usr/local/cuda
 
+if [ -x "${UCX_INSTALL_DIR}/bin/ucx_info" ]; then
+    echo "UCX already installed at ${UCX_INSTALL_DIR}; skipping."
+    exit 0
+fi
+
 sudo apt update
 sudo apt install -y build-essential autoconf automake libtool pkg-config \
     libnuma-dev rdma-core libibverbs-dev
