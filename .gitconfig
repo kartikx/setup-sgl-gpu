@@ -1,0 +1,16 @@
+[init]
+	defaultBranch = main
+[user]
+	name = Kartik Ramesh
+	email = kartikx2000@gmail.com
+[core]
+	editor = vim
+[alias]
+	st = status
+	ci = commit
+	co = checkout
+	br = branch
+	lg = log --oneline --graph --decorate --all
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
