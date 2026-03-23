@@ -18,3 +18,13 @@ EOF
 chmod 600 ~/.ssh/config
 
 cat ~/.ssh/id_ed25519_github.pub
+
+# Preload GitHub host key so first SSH connect is non-interactive.
+touch ~/.ssh/known_hosts
+if ! ssh-keygen -F github.com >/dev/null; then
+  ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+fi
+chmod 644 ~/.ssh/known_hosts
+
+# Test SSH to GitHub without prompting for host authenticity.
+ssh -o StrictHostKeyChecking=yes -T git@github.com || true
