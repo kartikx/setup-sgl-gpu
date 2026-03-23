@@ -57,5 +57,6 @@ source "${ENV_DIR}/bin/activate"
 
 cd "$SGLANG_DIR"
 uv pip install -e "python" --prerelease=allow
+uv pip install --upgrade transformers
 
 log "Done."

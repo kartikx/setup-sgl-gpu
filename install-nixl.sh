@@ -16,9 +16,9 @@ fi
 # shellcheck disable=SC1090
 source "$ACTIVATE_SCRIPT"
 
-if uv pip show nixl >/dev/null 2>&1; then
-  echo "nixl already installed in ${UV_VENV_DIR}; skipping."
-  uv pip list | grep -E '^nixl[[:space:]]' || true
+if uv pip show nixl-cu12 >/dev/null 2>&1; then
+  echo "nixl-cu12 already installed in ${UV_VENV_DIR}; skipping."
+  uv pip list | grep -E '^nixl-cu12[[:space:]]' || true
   exit 0
 fi
 
@@ -49,8 +49,8 @@ uv run --active meson setup build \
 uv run --active meson compile -C build
 uv run --active meson install -C build
 
-echo "Verifying nixl in active uv environment..."
-if ! uv pip list | grep -E '^nixl[[:space:]]'; then
-  echo "nixl was not found in the active uv environment."
+echo "Verifying nixl-cu12 in active uv environment..."
+if ! uv pip list | grep -E '^nixl-cu12[[:space:]]'; then
+  echo "nixl-cu12 was not found in the active uv environment."
   exit 1
 fi
