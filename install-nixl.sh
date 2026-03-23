@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UV_VENV_DIR="${UV_VENV_DIR:-/mnt/data/envs/vllm-source/.venv}"
+UV_VENV_DIR="${UV_VENV_DIR:-/mnt/data/envs/sgl-a100"
 NIXL_DIR="${NIXL_DIR:-$HOME/nixl}"
 UCX_PATH="${UCX_PATH:-/mnt/data/ucx-1.19.0/lib/ucx}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-$UV_VENV_DIR}"
