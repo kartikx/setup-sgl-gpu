@@ -1,4 +1,4 @@
-export UCX_VERSION=1.19.0
+export UCX_VERSION=1.20
 export UCX_INSTALL_DIR=/mnt/data/ucx-${UCX_VERSION}
 export CUDA_HOME=/usr/local/cuda
 

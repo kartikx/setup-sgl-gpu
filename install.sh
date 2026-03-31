@@ -1,5 +1,5 @@
 sudo apt update
-sudo apt install zsh
+sudo apt install -y zsh
 
 wget https://github.com/junegunn/fzf/releases/download/v0.67.0/fzf-0.67.0-linux_amd64.tar.gz
 tar -xzf fzf-0.67.0-linux_amd64.tar.gz
