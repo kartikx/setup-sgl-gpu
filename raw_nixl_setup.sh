@@ -38,21 +38,20 @@ rm -rf nixl
 git clone https://github.com/ai-dynamo/nixl.git
 cd nixl
 
-uv pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
+python -m pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
 uv pip install -U tomlkit meson ninja pybind11 build setuptools wheel
 
-# select CUDA 13 package name
 ./contrib/tomlutil.py --wheel-name nixl-cu13 pyproject.toml
 
-# source install flow
-uv pip install .
+uv pip install --no-deps .
 meson setup build \
   --prefix=/mnt/data/envs/sgl-a100 \
+  --libdir=lib \
   -Ducx_path=/mnt/data/ucx-1.20 \
   -Dinstall_headers=true
 ninja -C build
 ninja -C build install
-uv pip install build/src/bindings/python/nixl-meta/nixl-*-py3-none-any.whl
+uv pip install --no-deps build/src/bindings/python/nixl-meta/nixl-*-py3-none-any.whl
 
 # verify
 python -c "import nixl; a=nixl.nixl_agent('agent1'); print('nixl ok')"
