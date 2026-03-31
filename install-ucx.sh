@@ -1,7 +1,6 @@
-export UCX_VERSION=1.20.0
+export UCX_VERSION=1.19.0
 export UCX_INSTALL_DIR=/mnt/data/ucx-${UCX_VERSION}
 export CUDA_HOME=/usr/local/cuda
-export UCX_ARCHIVE_URL="https://github.com/openucx/ucx/archive/refs/tags/v${UCX_VERSION}.tar.gz"
 
 if [ -x "${UCX_INSTALL_DIR}/bin/ucx_info" ]; then
     echo "UCX already installed at ${UCX_INSTALL_DIR}; skipping."
@@ -23,7 +22,7 @@ fi
 make prefix=/mnt/data/gdrcopy CUDA=/usr/local/cuda all install
 
 cd /mnt/data
-wget -O ucx-${UCX_VERSION}.tar.gz "${UCX_ARCHIVE_URL}"
+wget https://github.com/openucx/ucx/releases/download/v${UCX_VERSION}/ucx-${UCX_VERSION}.tar.gz
 tar -xzf ucx-${UCX_VERSION}.tar.gz
 cd ucx-${UCX_VERSION}
 
