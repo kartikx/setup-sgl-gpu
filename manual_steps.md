@@ -1,0 +1,4 @@
+- provision gpu on aws
+- update local ssh config (optional)
+- add my local key to machine (optional)
+- 

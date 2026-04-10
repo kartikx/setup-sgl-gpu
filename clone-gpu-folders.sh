@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="/mnt/data"
-ENV_DIR="${BASE_DIR}/envs/sgl-a100"
-SGLANG_DIR="${BASE_DIR}/sglang"
+BASE_DIR="${BASE_DIR:-/mnt/data}"
+ENV_DIR="${ENV_DIR:-${BASE_DIR}/envs/sgl-a100}"
+BENCHMARKING_DIR="${BENCHMARKING_DIR:-${BASE_DIR}/sglang-nixl-benchmarking}"
+SGLANG_DIR="${SGLANG_DIR:-${BASE_DIR}/sglang}"
+SGLANG_BRANCH="kartikx/pd-disagg"
 UV_BIN="${HOME}/.local/bin/uv"
 
 log() {
@@ -26,7 +28,24 @@ clone_or_update_repo() {
   fi
 
   log "Cloning ${repo_url} -> ${repo_dir}"
+  mkdir -p "$(dirname "$repo_dir")"
   git clone "$repo_url" "$repo_dir"
+}
+
+ensure_branch() {
+  local repo_dir="$1"
+  local branch="$2"
+
+  log "Ensuring branch ${branch} in ${repo_dir}"
+  git -C "$repo_dir" fetch origin
+
+  if git -C "$repo_dir" show-ref --verify --quiet "refs/heads/${branch}"; then
+    git -C "$repo_dir" checkout "$branch"
+  else
+    git -C "$repo_dir" checkout -b "$branch" --track "origin/${branch}"
+  fi
+
+  git -C "$repo_dir" pull --ff-only origin "$branch"
 }
 
 if command -v uv >/dev/null 2>&1; then
@@ -41,8 +60,9 @@ fi
 mkdir -p "$BASE_DIR"
 cd "$BASE_DIR"
 
-clone_or_update_repo "git@github.com:kartikx/sglang-nixl-benchmarking.git" "${BASE_DIR}/sglang-nixl-benchmarking"
+clone_or_update_repo "git@github.com:kartikx/sglang-nixl-benchmarking.git" "$BENCHMARKING_DIR"
 clone_or_update_repo "git@github.com:kartikx/sglang.git" "$SGLANG_DIR"
+ensure_branch "$SGLANG_DIR" "$SGLANG_BRANCH"
 
 if [[ -x "${ENV_DIR}/bin/python" ]]; then
   log "Using existing venv: ${ENV_DIR}"

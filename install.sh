@@ -1,5 +1,5 @@
 sudo apt update
-sudo apt install -y zsh
+sudo apt install -y zsh nodejs npm
 
 wget https://github.com/junegunn/fzf/releases/download/v0.67.0/fzf-0.67.0-linux_amd64.tar.gz
 tar -xzf fzf-0.67.0-linux_amd64.tar.gz
@@ -22,3 +22,6 @@ sudo timedatectl set-timezone America/Chicago
 # install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
+
+# install codex cli
+sudo npm i -g @openai/codex

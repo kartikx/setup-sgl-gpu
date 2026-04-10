@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UV_VENV_DIR="${UV_VENV_DIR:-/mnt/data/envs/sgl-a100}"
-NIXL_DIR="${NIXL_DIR:-/mnt/data/nixl}"
+BASE_DIR="${BASE_DIR:-/mnt/data}"
+UCX_VERSION="${UCX_VERSION:-1.19.0}"
+UV_VENV_DIR="${UV_VENV_DIR:-${BASE_DIR}/envs/sgl-a100}"
+NIXL_DIR="${NIXL_DIR:-${BASE_DIR}/nixl}"
 NIXL_REPO_URL="${NIXL_REPO_URL:-https://github.com/ai-dynamo/nixl.git}"
-UCX_PATH="${UCX_PATH:-/mnt/data/ucx-1.20}"
+UCX_PATH="${UCX_PATH:-${UCX_INSTALL_DIR:-${BASE_DIR}/ucx-${UCX_VERSION}}}"
 CUDA_WHEEL="${CUDA_WHEEL:-cu13}" # cu12 or cu13
 FORCE_REINSTALL="${FORCE_REINSTALL:-0}"
 INSTALL_HEADERS="${INSTALL_HEADERS:-true}"
@@ -27,7 +29,7 @@ fi
 
 if [[ ! -f "${UCX_PATH}/include/ucp/api/ucp.h" ]]; then
   echo "UCX headers not found at: ${UCX_PATH}/include/ucp/api/ucp.h"
-  echo "Set UCX_PATH to the UCX install prefix (e.g. /mnt/data/ucx-1.20)."
+  echo "Set UCX_PATH to the UCX install prefix (e.g. ${BASE_DIR}/ucx-${UCX_VERSION})."
   exit 1
 fi
 
@@ -57,6 +59,7 @@ else
     exit 1
   fi
   log "Cloning nixl repo to ${NIXL_DIR}"
+  mkdir -p "$(dirname "$NIXL_DIR")"
   git clone "$NIXL_REPO_URL" "$NIXL_DIR"
 fi
 

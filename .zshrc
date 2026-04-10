@@ -125,18 +125,20 @@ echo -ne '\e[5 q' # Use beam shape cursor on startup.
 preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 
 # UV configuration
-export UV_CACHE_DIR=/home/ubuntu/.cache/uv
+export BASE_DIR="${BASE_DIR:-/mnt/data}"
+export UCX_VERSION="${UCX_VERSION:-1.19.0}"
+export UV_CACHE_DIR="$HOME/.cache/uv"
 # export UV_LINK_MODE=copy
-# export UV_PYTHON_INSTALL_DIR=/mnt/data/uv/python
-# export UV_TOOLCHAIN_DIR=/mnt/data/uv/toolchains
-# export UV_VENV_BASE_DIR=/mnt/data/envs
-export PATH=/home/ubuntu/.local/bin:$PATH
+# export UV_PYTHON_INSTALL_DIR="$BASE_DIR/uv/python"
+# export UV_TOOLCHAIN_DIR="$BASE_DIR/uv/toolchains"
+# export UV_VENV_BASE_DIR="$BASE_DIR/envs"
+export PATH="$HOME/.local/bin:$PATH"
 
 # UCX
-export UCX_HOME=/mnt/data/ucx
+export UCX_HOME="${UCX_HOME:-$BASE_DIR/ucx-${UCX_VERSION}}"
 export PATH=$UCX_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$UCX_HOME/lib:$LD_LIBRARY_PATH
-export PKG_CONFIG_PATH=$UCX_HOME/lib/pkgconfig:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH="$UCX_HOME/lib:${LD_LIBRARY_PATH:-}"
+export PKG_CONFIG_PATH="$UCX_HOME/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 # HF
 export HF_HOME=/opt/dlami/nvme/hf_cache
@@ -148,6 +150,11 @@ export HF_HUB_CACHE=/opt/dlami/nvme/hf_cache
 export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
+
+# NIXL runtime libs from active virtual environment
+if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+  export LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib:${VIRTUAL_ENV}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+fi
 #
 # shell integrations
 eval "$(fzf --zsh)"
