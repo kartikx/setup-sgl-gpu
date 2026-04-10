@@ -17,6 +17,7 @@ CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
 SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-0}"
+GENERATE_GITHUB_KEY="${GENERATE_GITHUB_KEY:-0}"
 SKIP_GITHUB_CHECK="${SKIP_GITHUB_CHECK:-0}"
 
 log() {
@@ -26,6 +27,21 @@ log() {
 fail() {
   echo "[bootstrap-gpu] ERROR: $*" >&2
   exit 1
+}
+
+set_zshrc_export() {
+  local name="$1"
+  local value="$2"
+  local zshrc_path="${ZSHRC_PATH:-$HOME/.zshrc}"
+  local tmp_file
+
+  mkdir -p "$(dirname "$zshrc_path")"
+  touch "$zshrc_path"
+
+  tmp_file="$(mktemp)"
+  grep -v "^export ${name}=" "$zshrc_path" > "$tmp_file" || true
+  printf '\nexport %s=%q\n' "$name" "$value" >> "$tmp_file"
+  mv "$tmp_file" "$zshrc_path"
 }
 
 usage() {
@@ -47,6 +63,7 @@ Environment overrides:
   INSTALL_CODEX       Default: 1
   INSTALL_DOTFILES    Default: 1
   SET_DEFAULT_SHELL   Default: 0
+  GENERATE_GITHUB_KEY Default: 0
   SKIP_GITHUB_CHECK   Default: 0
 EOF
 }
@@ -138,6 +155,17 @@ install_dotfiles() {
   fi
 }
 
+generate_github_key() {
+  if [[ "$GENERATE_GITHUB_KEY" != "1" ]]; then
+    log "Skipping GitHub SSH key generation because GENERATE_GITHUB_KEY=$GENERATE_GITHUB_KEY"
+    return
+  fi
+
+  log "Generating GitHub SSH key via generate-keys.sh"
+  bash "$REPO_DIR/generate-keys.sh"
+  log "Add the printed public key to GitHub before running $(basename "$0") part2"
+}
+
 check_gpu_stack() {
   ensure_cmd git
   ensure_cmd curl
@@ -194,6 +222,7 @@ run_part1() {
   install_neovim
   install_codex
   install_dotfiles
+  generate_github_key
 
   log "part1 complete"
   log "Next: configure GitHub access and then run $(basename "$0") part2"
@@ -221,6 +250,9 @@ run_part2() {
   SGLANG_DIR="$SGLANG_DIR" \
   bash "$REPO_DIR/clone-gpu-folders.sh"
 
+  log "Recording SGLANG_VENV_PATH in ~/.zshrc"
+  set_zshrc_export "SGLANG_VENV_PATH" "$ENV_DIR"
+
   log "Installing UCX into $UCX_INSTALL_DIR"
   BASE_DIR="$BASE_DIR" \
   UCX_VERSION="$UCX_VERSION" \
@@ -243,6 +275,7 @@ run_part2() {
   log "Running smoke checks"
   # shellcheck disable=SC1090
   source "${ENV_DIR}/bin/activate"
+  export LD_LIBRARY_PATH="${ENV_DIR}/lib:${ENV_DIR}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
   nvidia-smi >/dev/null
   "${UCX_INSTALL_DIR}/bin/ucx_info" -d | grep -i cuda >/dev/null
   python -c "import nixl; import sglang; print('nixl and sglang imports ok')"

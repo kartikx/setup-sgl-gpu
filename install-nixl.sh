@@ -36,6 +36,7 @@ fi
 # shellcheck disable=SC1090
 source "$ACTIVATE_SCRIPT"
 export PATH="$HOME/.local/bin:${PATH}"
+export LD_LIBRARY_PATH="${UV_VENV_DIR}/lib:${UV_VENV_DIR}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 
 PKG_NAME="nixl-${CUDA_WHEEL}"
 
@@ -69,7 +70,7 @@ log "Configuring NIXL Python wheel name for ${PKG_NAME}"
 ./contrib/tomlutil.py --wheel-name "$PKG_NAME" pyproject.toml
 
 log "Removing old nixl packages from active venv"
-python -m pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
+uv pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
 
 log "Installing local nixl package without resolving from PyPI"
 uv pip install --no-deps .
