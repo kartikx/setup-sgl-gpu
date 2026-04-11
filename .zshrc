@@ -151,10 +151,18 @@ export CUDA_HOME=/usr/local/cuda
 export PATH="$CUDA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
 
-# NIXL runtime libs from active virtual environment
-if [[ -n "${VIRTUAL_ENV:-}" ]]; then
-  export LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib:${VIRTUAL_ENV}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+# NIXL runtime libs: hardcode default SGLang venv even when no venv is active.
+export SGLANG_VENV_PATH="${SGLANG_VENV_PATH:-/home/ubuntu/envs/sgl-a100}"
+if [[ -d "${SGLANG_VENV_PATH}" ]]; then
+  export LD_LIBRARY_PATH="${SGLANG_VENV_PATH}/lib:${SGLANG_VENV_PATH}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 fi
+
+# NIXL meson-python runtime libs/plugins (needed for UCX plugin loading)
+NIXL_MESONPY_LIBS="${SGLANG_VENV_PATH}/lib/python3.12/site-packages/.nixl.mesonpy.libs"
+if [[ -d "${NIXL_MESONPY_LIBS}" ]]; then
+  export LD_LIBRARY_PATH="${NIXL_MESONPY_LIBS}/plugins:${NIXL_MESONPY_LIBS}:${LD_LIBRARY_PATH:-}"
+fi
+unset NIXL_MESONPY_LIBS
 #
 # shell integrations
 eval "$(fzf --zsh)"
