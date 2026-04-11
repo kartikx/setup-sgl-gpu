@@ -14,10 +14,11 @@ GDRCOPY_DIR="${GDRCOPY_DIR:-${BASE_DIR}/gdrcopy}"
 UCX_SRC_PARENT="${UCX_SRC_PARENT:-${BASE_DIR}/src}"
 UCX_SRC_DIR="${UCX_SRC_DIR:-${UCX_SRC_PARENT}/ucx-${UCX_VERSION}}"
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
+PROMETHEUS_VERSION="${PROMETHEUS_VERSION:-3.5.1}"
 INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
-SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-0}"
-GENERATE_GITHUB_KEY="${GENERATE_GITHUB_KEY:-0}"
+SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-1}"
+GENERATE_GITHUB_KEY="${GENERATE_GITHUB_KEY:-1}"
 SKIP_GITHUB_CHECK="${SKIP_GITHUB_CHECK:-0}"
 
 log() {
@@ -60,10 +61,11 @@ Environment overrides:
   UCX_SRC_PARENT      Default: \$BASE_DIR/src
   UCX_SRC_DIR         Default: \$UCX_SRC_PARENT/ucx-\$UCX_VERSION
   CUDA_HOME           Default: /usr/local/cuda
+  PROMETHEUS_VERSION  Default: 3.5.1
   INSTALL_CODEX       Default: 1
   INSTALL_DOTFILES    Default: 1
-  SET_DEFAULT_SHELL   Default: 0
-  GENERATE_GITHUB_KEY Default: 0
+  SET_DEFAULT_SHELL   Default: 1
+  GENERATE_GITHUB_KEY Default: 1
   SKIP_GITHUB_CHECK   Default: 0
 EOF
 }
@@ -137,6 +139,24 @@ install_neovim() {
   sudo rm -rf /opt/nvim-linux-x86_64
   sudo tar -C /opt -xzf "${temp_dir}/${archive}"
   sudo ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+  rm -rf "$temp_dir"
+}
+
+install_prometheus() {
+  if command -v prometheus >/dev/null 2>&1; then
+    log "prometheus already installed"
+    return
+  fi
+
+  log "Installing Prometheus ${PROMETHEUS_VERSION}"
+  local archive="prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
+  local download_url="https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/${archive}"
+  local temp_dir
+  temp_dir="$(mktemp -d)"
+  wget -O "${temp_dir}/${archive}" "$download_url"
+  tar -xzf "${temp_dir}/${archive}" -C "$temp_dir"
+  sudo mv "${temp_dir}/prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus" /usr/local/bin/prometheus
+  sudo mv "${temp_dir}/prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool" /usr/local/bin/promtool
   rm -rf "$temp_dir"
 }
 
@@ -220,6 +240,7 @@ run_part1() {
   install_fzf
   install_zoxide
   install_neovim
+  install_prometheus
   install_codex
   install_dotfiles
   generate_github_key
@@ -252,6 +273,8 @@ run_part2() {
 
   log "Recording SGLANG_VENV_PATH in ~/.zshrc"
   set_zshrc_export "SGLANG_VENV_PATH" "$ENV_DIR"
+  log "Recording UCX_HOME in ~/.zshrc"
+  set_zshrc_export "UCX_HOME" "$UCX_INSTALL_DIR"
 
   log "Installing UCX into $UCX_INSTALL_DIR"
   BASE_DIR="$BASE_DIR" \
