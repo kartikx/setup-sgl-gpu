@@ -67,9 +67,6 @@ log "Checking out pinned NIXL commit: ${NIXL_COMMIT}"
 git checkout -f "${NIXL_COMMIT}"
 git show --no-patch --oneline "${NIXL_COMMIT}"
 
-log "Removing old nixl packages from active venv"
-uv pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
-
 log "Building/installing NIXL from pinned commit via meson-python"
 python -m pip install --no-build-isolation --force-reinstall \
   --config-settings=setup-args=-Ducx_path="${UCX_PATH}" \
