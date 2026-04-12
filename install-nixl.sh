@@ -9,7 +9,7 @@ NIXL_REPO_URL="${NIXL_REPO_URL:-https://github.com/ai-dynamo/nixl.git}"
 NIXL_COMMIT="${NIXL_COMMIT:-420c39c1000274d32f49cea5024e1e094492e695}"
 UCX_PATH="${UCX_PATH:-${UCX_INSTALL_DIR:-${BASE_DIR}/ucx-${UCX_VERSION}}}"
 FORCE_REINSTALL="${FORCE_REINSTALL:-0}"
-INSTALL_HEADERS="${INSTALL_HEADERS:-true}"
+INSTALL_HEADERS="${INSTALL_HEADERS:-false}"
 
 log() {
   echo "[install-nixl] $*"
@@ -101,7 +101,7 @@ log "Checking out pinned NIXL commit: ${NIXL_COMMIT}"
 git checkout -f "${NIXL_COMMIT}"
 git show --no-patch --oneline "${NIXL_COMMIT}"
 
-log "Building/installing NIXL from pinned commit via meson-python"
+log "Building/installing NIXL from pinned commit via meson-python (install_headers=${INSTALL_HEADERS})"
 uv pip install --reinstall --no-build-isolation \
   --config-settings=setup-args=-Ducx_path="${UCX_PATH}" \
   --config-settings=setup-args=-Dinstall_headers="${INSTALL_HEADERS}" \
