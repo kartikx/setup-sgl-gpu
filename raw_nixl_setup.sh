@@ -49,7 +49,6 @@ rm -rf "${NIXL_DIR}"
 git clone https://github.com/ai-dynamo/nixl.git "${NIXL_DIR}"
 cd "${NIXL_DIR}"
 
-python -m pip uninstall -y nixl nixl-cu12 nixl-cu13 || true
 uv pip install -U tomlkit meson ninja pybind11 build setuptools wheel
 
 ./contrib/tomlutil.py --wheel-name nixl-cu13 pyproject.toml

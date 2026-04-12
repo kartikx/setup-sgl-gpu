@@ -15,6 +15,40 @@ log() {
   echo "[install-nixl] $*"
 }
 
+rewrite_activate_runtime_block() {
+  local activate_script="$1"
+  local ucx_prefix="$2"
+  local tmp_file
+  local begin_marker="# >>> nixl/ucx runtime libs >>>"
+  local end_marker="# <<< nixl/ucx runtime libs <<<"
+
+  tmp_file="$(mktemp)"
+  awk -v begin="$begin_marker" -v end="$end_marker" '
+    $0 == begin { skip=1; next }
+    $0 == end { skip=0; next }
+    !skip { print }
+  ' "$activate_script" > "$tmp_file"
+
+  cat >> "$tmp_file" <<EOF
+
+$begin_marker
+if [ -n "\${VIRTUAL_ENV:-}" ]; then
+  _NIXL_MESONPY_LIBS="\$(python - <<'PY'
+import sysconfig
+print(sysconfig.get_paths().get('purelib', ''))
+PY
+)"
+  _NIXL_MESONPY_LIBS="\${_NIXL_MESONPY_LIBS}/.nixl.mesonpy.libs"
+  _NIXL_MESONPY_PLUGINS="\${_NIXL_MESONPY_LIBS}/plugins"
+  export LD_LIBRARY_PATH="${ucx_prefix}/lib:\${_NIXL_MESONPY_PLUGINS}:\${_NIXL_MESONPY_LIBS}:\${VIRTUAL_ENV}/lib:\${VIRTUAL_ENV}/lib/x86_64-linux-gnu:\${LD_LIBRARY_PATH:-}"
+  unset _NIXL_MESONPY_LIBS _NIXL_MESONPY_PLUGINS
+fi
+$end_marker
+EOF
+
+  mv "$tmp_file" "$activate_script"
+}
+
 ACTIVATE_SCRIPT="${UV_VENV_DIR}/bin/activate"
 if [[ ! -f "$ACTIVATE_SCRIPT" ]]; then
   echo "Venv activate script not found: $ACTIVATE_SCRIPT"
@@ -68,7 +102,7 @@ git checkout -f "${NIXL_COMMIT}"
 git show --no-patch --oneline "${NIXL_COMMIT}"
 
 log "Building/installing NIXL from pinned commit via meson-python"
-python -m pip install --no-build-isolation --force-reinstall \
+uv pip install --reinstall --no-build-isolation \
   --config-settings=setup-args=-Ducx_path="${UCX_PATH}" \
   --config-settings=setup-args=-Dinstall_headers="${INSTALL_HEADERS}" \
   .
@@ -76,28 +110,8 @@ python -m pip install --no-build-isolation --force-reinstall \
 # Persist NIXL loader paths whenever this venv is activated.
 # Without this, plugin loading can fail in fresh shells with:
 #   libucp.so.0 / libplugin_UCX.so not found
-ACTIVATE_MARKER="# >>> nixl/ucx runtime libs >>>"
-if ! grep -qF "$ACTIVATE_MARKER" "$ACTIVATE_SCRIPT"; then
-  log "Persisting NIXL runtime library paths into ${ACTIVATE_SCRIPT}"
-  cat >> "$ACTIVATE_SCRIPT" <<'EOF'
-
-# >>> nixl/ucx runtime libs >>>
-if [ -n "${VIRTUAL_ENV:-}" ]; then
-  _NIXL_MESONPY_LIBS="$(python - <<'PY'
-import sysconfig
-print(sysconfig.get_paths().get('purelib', ''))
-PY
-)"
-  _NIXL_MESONPY_LIBS="${_NIXL_MESONPY_LIBS}/.nixl.mesonpy.libs"
-  _NIXL_MESONPY_PLUGINS="${_NIXL_MESONPY_LIBS}/plugins"
-  _UCX_PREFIX="__UCX_PREFIX__"
-  export LD_LIBRARY_PATH="${_UCX_PREFIX}/lib:${_NIXL_MESONPY_PLUGINS}:${_NIXL_MESONPY_LIBS}:${VIRTUAL_ENV}/lib:${VIRTUAL_ENV}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
-  unset _NIXL_MESONPY_LIBS _NIXL_MESONPY_PLUGINS _UCX_PREFIX
-fi
-# <<< nixl/ucx runtime libs <<<
-EOF
-  sed -i "s|__UCX_PREFIX__|${UCX_PATH}|g" "$ACTIVATE_SCRIPT"
-fi
+log "Persisting NIXL runtime library paths into ${ACTIVATE_SCRIPT}"
+rewrite_activate_runtime_block "$ACTIVATE_SCRIPT" "$UCX_PATH"
 
 log "Verifying nixl import"
 python -c "import nixl; from nixl._api import nixl_agent; _ = nixl_agent('agent1')"
