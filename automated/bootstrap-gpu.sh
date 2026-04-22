@@ -4,6 +4,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 BASE_DIR="${BASE_DIR:-$HOME}"
+GITHUB_SSH_KEY_PATH="${GITHUB_SSH_KEY_PATH:-$HOME/.ssh/id_ed25519_github}"
 ENV_DIR="${ENV_DIR:-${BASE_DIR}/envs/sgl-a100}"
 BENCHMARKING_DIR="${BENCHMARKING_DIR:-${BASE_DIR}/sglang-nixl-benchmarking}"
 SGLANG_DIR="${SGLANG_DIR:-${BASE_DIR}/sglang}"
@@ -18,7 +19,6 @@ PROMETHEUS_VERSION="${PROMETHEUS_VERSION:-3.5.1}"
 INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
 SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-1}"
-GENERATE_GITHUB_KEY="${GENERATE_GITHUB_KEY:-1}"
 SKIP_GITHUB_CHECK="${SKIP_GITHUB_CHECK:-0}"
 
 log() {
@@ -45,12 +45,19 @@ set_zshrc_export() {
   mv "$tmp_file" "$zshrc_path"
 }
 
+require_github_key() {
+  if [[ ! -f "$GITHUB_SSH_KEY_PATH" ]]; then
+    fail "Expected GitHub SSH key at $GITHUB_SSH_KEY_PATH. Run ./generate-keys.sh first, add the printed public key to GitHub, then rerun this script."
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") <part1|part2|all>
 
 Environment overrides:
   BASE_DIR            Default: \$HOME
+  GITHUB_SSH_KEY_PATH Default: \$HOME/.ssh/id_ed25519_github
   ENV_DIR             Default: \$BASE_DIR/envs/sgl-a100
   BENCHMARKING_DIR    Default: \$BASE_DIR/sglang-nixl-benchmarking
   SGLANG_DIR          Default: \$BASE_DIR/sglang
@@ -65,7 +72,6 @@ Environment overrides:
   INSTALL_CODEX       Default: 1
   INSTALL_DOTFILES    Default: 1
   SET_DEFAULT_SHELL   Default: 1
-  GENERATE_GITHUB_KEY Default: 1
   SKIP_GITHUB_CHECK   Default: 0
 EOF
 }
@@ -175,17 +181,6 @@ install_dotfiles() {
   fi
 }
 
-generate_github_key() {
-  if [[ "$GENERATE_GITHUB_KEY" != "1" ]]; then
-    log "Skipping GitHub SSH key generation because GENERATE_GITHUB_KEY=$GENERATE_GITHUB_KEY"
-    return
-  fi
-
-  log "Generating GitHub SSH key via generate-keys.sh"
-  bash "$REPO_DIR/generate-keys.sh"
-  log "Add the printed public key to GitHub before running $(basename "$0") part2"
-}
-
 check_gpu_stack() {
   ensure_cmd git
   ensure_cmd curl
@@ -243,7 +238,6 @@ run_part1() {
   install_prometheus
   install_codex
   install_dotfiles
-  generate_github_key
 
   log "part1 complete"
   log "Next: configure GitHub access and then run $(basename "$0") part2"
@@ -264,7 +258,7 @@ run_part2() {
 
   mkdir -p "$BASE_DIR"
 
-  log "Running clone/setup with BASE_DIR=$BASE_DIR"
+  log "Cloning repos and preparing the venv with BASE_DIR=$BASE_DIR"
   BASE_DIR="$BASE_DIR" \
   ENV_DIR="$ENV_DIR" \
   BENCHMARKING_DIR="$BENCHMARKING_DIR" \
@@ -295,6 +289,12 @@ run_part2() {
   CUDA_HOME="$CUDA_HOME" \
   bash "$REPO_DIR/install-nixl.sh"
 
+  log "Installing SGLang into $ENV_DIR after NIXL"
+  BASE_DIR="$BASE_DIR" \
+  UV_VENV_DIR="$ENV_DIR" \
+  SGLANG_DIR="$SGLANG_DIR" \
+  bash "$REPO_DIR/install-sglang.sh"
+
   log "Running smoke checks"
   # shellcheck disable=SC1090
   source "${ENV_DIR}/bin/activate"
@@ -316,12 +316,15 @@ main() {
 
   case "$mode" in
     part1)
+      require_github_key
       run_part1
       ;;
     part2)
+      require_github_key
       run_part2
       ;;
     all)
+      require_github_key
       run_part1
       run_part2
       ;;

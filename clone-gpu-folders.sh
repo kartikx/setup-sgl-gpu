@@ -75,9 +75,4 @@ fi
 # shellcheck disable=SC1091
 source "${ENV_DIR}/bin/activate"
 
-cd "$SGLANG_DIR"
-uv pip install -e "python" --prerelease=allow
-uv pip install matplotlib
-uv pip install --upgrade transformers
-
 log "Done."
