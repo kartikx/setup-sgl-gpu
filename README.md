@@ -34,7 +34,7 @@ BASE_DIR="$HOME" ./automated/bootstrap-gpu.sh part2
 source ~/.zshrc
 ```
 
-After `part2`, `SGLANG_VENV_PATH` points at the created venv.
+After `part2`, both `SGLANG_VENV_PATH` and `SGLANG_UPSTREAM_VENV_PATH` point at the created venvs.
 
 ## One-Shot Run
 
@@ -50,11 +50,24 @@ source ~/.zshrc
 With `BASE_DIR="$HOME"`:
 
 - venv: `$HOME/envs/sgl-a100`
+- upstream venv: `$HOME/envs/sgl-upstream`
 - sglang repo: `$HOME/sglang`
 - benchmarking repo: `$HOME/sglang-nixl-benchmarking`
 - nixl repo: `$HOME/nixl`
 - UCX install: `$HOME/ucx-1.19.0`
 - GitHub SSH key: `$HOME/.ssh/id_ed25519_github`
+
+`part2` now provisions the upstream comparison environment after the primary `sgl-a100` flow succeeds:
+
+1. Install UCX once.
+2. Install NIXL into `$HOME/envs/sgl-a100`.
+3. Install the forked SGLang checkout into `$HOME/envs/sgl-a100`.
+4. Smoke test the primary env.
+5. Create `$HOME/envs/sgl-upstream`.
+6. Install NIXL into `$HOME/envs/sgl-upstream`.
+7. Install `sglang==0.5.4` from PyPI into `$HOME/envs/sgl-upstream`.
+8. Install `sglang-router` into `$HOME/envs/sgl-upstream`.
+9. Smoke test the upstream env.
 
 Common overrides:
 

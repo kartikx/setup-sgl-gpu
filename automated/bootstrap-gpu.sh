@@ -6,6 +6,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DIR="${BASE_DIR:-$HOME}"
 GITHUB_SSH_KEY_PATH="${GITHUB_SSH_KEY_PATH:-$HOME/.ssh/id_ed25519_github}"
 ENV_DIR="${ENV_DIR:-${BASE_DIR}/envs/sgl-a100}"
+UPSTREAM_ENV_DIR="${UPSTREAM_ENV_DIR:-${BASE_DIR}/envs/sgl-upstream}"
 BENCHMARKING_DIR="${BENCHMARKING_DIR:-${BASE_DIR}/sglang-nixl-benchmarking}"
 SGLANG_DIR="${SGLANG_DIR:-${BASE_DIR}/sglang}"
 NIXL_DIR="${NIXL_DIR:-${BASE_DIR}/nixl}"
@@ -20,6 +21,7 @@ INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
 SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-1}"
 SKIP_GITHUB_CHECK="${SKIP_GITHUB_CHECK:-0}"
+UPSTREAM_SGLANG_VERSION="${UPSTREAM_SGLANG_VERSION:-0.5.4}"
 
 log() {
   echo "[bootstrap-gpu] $*"
@@ -59,6 +61,7 @@ Environment overrides:
   BASE_DIR            Default: \$HOME
   GITHUB_SSH_KEY_PATH Default: \$HOME/.ssh/id_ed25519_github
   ENV_DIR             Default: \$BASE_DIR/envs/sgl-a100
+  UPSTREAM_ENV_DIR    Default: \$BASE_DIR/envs/sgl-upstream
   BENCHMARKING_DIR    Default: \$BASE_DIR/sglang-nixl-benchmarking
   SGLANG_DIR          Default: \$BASE_DIR/sglang
   NIXL_DIR            Default: \$BASE_DIR/nixl
@@ -73,6 +76,7 @@ Environment overrides:
   INSTALL_DOTFILES    Default: 1
   SET_DEFAULT_SHELL   Default: 1
   SKIP_GITHUB_CHECK   Default: 0
+  UPSTREAM_SGLANG_VERSION  Default: 0.5.4
 EOF
 }
 
@@ -267,6 +271,8 @@ run_part2() {
 
   log "Recording SGLANG_VENV_PATH in ~/.zshrc"
   set_zshrc_export "SGLANG_VENV_PATH" "$ENV_DIR"
+  log "Recording SGLANG_UPSTREAM_VENV_PATH in ~/.zshrc"
+  set_zshrc_export "SGLANG_UPSTREAM_VENV_PATH" "$UPSTREAM_ENV_DIR"
   log "Recording UCX_HOME in ~/.zshrc"
   set_zshrc_export "UCX_HOME" "$UCX_INSTALL_DIR"
 
@@ -303,9 +309,40 @@ run_part2() {
   "${UCX_INSTALL_DIR}/bin/ucx_info" -d | grep -i cuda >/dev/null
   python -c "import nixl; import sglang; print('nixl and sglang imports ok')"
 
+  log "Creating upstream venv at $UPSTREAM_ENV_DIR"
+  if [[ -x "${UPSTREAM_ENV_DIR}/bin/python" ]]; then
+    log "Using existing upstream venv: ${UPSTREAM_ENV_DIR}"
+  else
+    mkdir -p "${BASE_DIR}/envs"
+    uv venv --python 3.12 "$UPSTREAM_ENV_DIR"
+  fi
+
+  log "Installing NIXL into upstream venv at $UPSTREAM_ENV_DIR"
+  BASE_DIR="$BASE_DIR" \
+  UCX_VERSION="$UCX_VERSION" \
+  UV_VENV_DIR="$UPSTREAM_ENV_DIR" \
+  NIXL_DIR="$NIXL_DIR" \
+  UCX_PATH="$UCX_INSTALL_DIR" \
+  CUDA_HOME="$CUDA_HOME" \
+  bash "$REPO_DIR/install-nixl.sh"
+
+  log "Installing upstream SGLang into $UPSTREAM_ENV_DIR"
+  BASE_DIR="$BASE_DIR" \
+  UV_VENV_DIR="$UPSTREAM_ENV_DIR" \
+  UPSTREAM_SGLANG_VERSION="$UPSTREAM_SGLANG_VERSION" \
+  bash "$REPO_DIR/install-sglang-upstream.sh"
+
+  log "Running upstream smoke checks"
+  # shellcheck disable=SC1090
+  source "${UPSTREAM_ENV_DIR}/bin/activate"
+  export LD_LIBRARY_PATH="${UPSTREAM_ENV_DIR}/lib:${UPSTREAM_ENV_DIR}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+  python -c "import nixl; import sglang; print('nixl and upstream sglang imports ok')"
+  uv pip show sglang-router >/dev/null
+
   log "part2 complete"
   log "Artifacts:"
   log "  ENV_DIR=$ENV_DIR"
+  log "  UPSTREAM_ENV_DIR=$UPSTREAM_ENV_DIR"
   log "  SGLANG_DIR=$SGLANG_DIR"
   log "  NIXL_DIR=$NIXL_DIR"
   log "  UCX_INSTALL_DIR=$UCX_INSTALL_DIR"
