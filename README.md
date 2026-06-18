@@ -80,8 +80,6 @@ SET_DEFAULT_SHELL=0
 SKIP_GITHUB_CHECK=1
 ```
 
-If `INSTALL_CODEX=1`, `part1` now installs `nvm`, switches to the latest Node LTS release, and installs `@openai/codex`.
-
 ## Troubleshooting
 
 If CUDA is not under `/usr/local/cuda`, pass the correct path to `part2`:
