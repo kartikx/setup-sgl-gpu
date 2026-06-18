@@ -105,8 +105,8 @@ install_codex() {
     return
   fi
 
-  log "Installing Codex CLI"
-  sudo npm i -g @openai/codex
+  log "Installing Codex CLI via nvm + Node LTS"
+  bash "$REPO_DIR/install-codex.sh"
 }
 
 install_fzf() {
@@ -227,8 +227,6 @@ run_part1() {
     libnuma-dev \
     libtool \
     ninja-build \
-    nodejs \
-    npm \
     pkg-config \
     rdma-core \
     wget \
