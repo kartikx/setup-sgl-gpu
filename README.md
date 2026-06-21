@@ -65,7 +65,7 @@ With `BASE_DIR="$HOME"`:
 4. Smoke test the primary env.
 5. Create `$HOME/envs/sgl-upstream`.
 6. Install NIXL into `$HOME/envs/sgl-upstream`.
-7. Install `sglang==0.5.4` from PyPI into `$HOME/envs/sgl-upstream`.
+7. Install `sglang==0.5.4.post1` from PyPI into `$HOME/envs/sgl-upstream`.
 8. Install `sglang-router` into `$HOME/envs/sgl-upstream`.
 9. Smoke test the upstream env.
 

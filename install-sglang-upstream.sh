@@ -3,7 +3,7 @@ set -euo pipefail
 
 BASE_DIR="${BASE_DIR:-/mnt/data}"
 UV_VENV_DIR="${UV_VENV_DIR:-${BASE_DIR}/envs/sgl-upstream}"
-UPSTREAM_SGLANG_VERSION="${UPSTREAM_SGLANG_VERSION:-0.5.4}"
+UPSTREAM_SGLANG_VERSION="${UPSTREAM_SGLANG_VERSION:-0.5.4.post1}"
 
 log() {
   echo "[install-sglang-upstream] $*"
@@ -21,7 +21,7 @@ source "$ACTIVATE_SCRIPT"
 export PATH="$HOME/.local/bin:${PATH}"
 
 log "Installing upstream SGLang from PyPI"
-uv pip install --reinstall "sglang==${UPSTREAM_SGLANG_VERSION}"
+uv pip install --reinstall --prerelease=allow "sglang==${UPSTREAM_SGLANG_VERSION}"
 
 log "Installing sglang-router"
 uv pip install --upgrade sglang-router
