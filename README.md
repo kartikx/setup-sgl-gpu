@@ -34,7 +34,7 @@ BASE_DIR="$HOME" ./automated/bootstrap-gpu.sh part2
 source ~/.zshrc
 ```
 
-After `part2`, both `SGLANG_VENV_PATH` and `SGLANG_UPSTREAM_VENV_PATH` point at the created venvs.
+After `part2`, `SGLANG_VENV_PATH`, `SGLANG_UPSTREAM_VENV_PATH`, and `VLLM_VENV_PATH` point at the created venvs.
 
 ## One-Shot Run
 
@@ -51,6 +51,7 @@ With `BASE_DIR="$HOME"`:
 
 - venv: `$HOME/envs/sgl-a100`
 - upstream venv: `$HOME/envs/sgl-upstream`
+- vLLM venv: `$HOME/envs/vllm`
 - sglang repo: `$HOME/sglang`
 - benchmarking repo: `$HOME/sglang-nixl-benchmarking`
 - nixl repo: `$HOME/nixl`
@@ -68,6 +69,10 @@ With `BASE_DIR="$HOME"`:
 7. Install `sglang==0.5.4.post1` from PyPI into `$HOME/envs/sgl-upstream`.
 8. Install `sglang-router` into `$HOME/envs/sgl-upstream`.
 9. Smoke test the upstream env.
+10. Create `$HOME/envs/vllm`.
+11. Install `vllm` and `vllm-router` into `$HOME/envs/vllm`.
+12. Install NIXL into `$HOME/envs/vllm`.
+13. Smoke test the vLLM env.
 
 Common overrides:
 
@@ -78,6 +83,8 @@ INSTALL_CODEX=0
 INSTALL_DOTFILES=0
 SET_DEFAULT_SHELL=0
 SKIP_GITHUB_CHECK=1
+VLLM_PACKAGE_SPEC=vllm
+VLLM_ROUTER_PACKAGE_SPEC=vllm-router
 ```
 
 ## Troubleshooting

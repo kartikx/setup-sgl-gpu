@@ -7,6 +7,7 @@ BASE_DIR="${BASE_DIR:-$HOME}"
 GITHUB_SSH_KEY_PATH="${GITHUB_SSH_KEY_PATH:-$HOME/.ssh/id_ed25519_github}"
 ENV_DIR="${ENV_DIR:-${BASE_DIR}/envs/sgl-a100}"
 UPSTREAM_ENV_DIR="${UPSTREAM_ENV_DIR:-${BASE_DIR}/envs/sgl-upstream}"
+VLLM_ENV_DIR="${VLLM_ENV_DIR:-${BASE_DIR}/envs/vllm}"
 BENCHMARKING_DIR="${BENCHMARKING_DIR:-${BASE_DIR}/sglang-nixl-benchmarking}"
 SGLANG_DIR="${SGLANG_DIR:-${BASE_DIR}/sglang}"
 NIXL_DIR="${NIXL_DIR:-${BASE_DIR}/nixl}"
@@ -22,6 +23,8 @@ INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
 SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-1}"
 SKIP_GITHUB_CHECK="${SKIP_GITHUB_CHECK:-0}"
 UPSTREAM_SGLANG_VERSION="${UPSTREAM_SGLANG_VERSION:-0.5.4.post1}"
+VLLM_PACKAGE_SPEC="${VLLM_PACKAGE_SPEC:-vllm}"
+VLLM_ROUTER_PACKAGE_SPEC="${VLLM_ROUTER_PACKAGE_SPEC:-vllm-router}"
 
 log() {
   echo "[bootstrap-gpu] $*"
@@ -62,6 +65,7 @@ Environment overrides:
   GITHUB_SSH_KEY_PATH Default: \$HOME/.ssh/id_ed25519_github
   ENV_DIR             Default: \$BASE_DIR/envs/sgl-a100
   UPSTREAM_ENV_DIR    Default: \$BASE_DIR/envs/sgl-upstream
+  VLLM_ENV_DIR        Default: \$BASE_DIR/envs/vllm
   BENCHMARKING_DIR    Default: \$BASE_DIR/sglang-nixl-benchmarking
   SGLANG_DIR          Default: \$BASE_DIR/sglang
   NIXL_DIR            Default: \$BASE_DIR/nixl
@@ -77,6 +81,8 @@ Environment overrides:
   SET_DEFAULT_SHELL   Default: 1
   SKIP_GITHUB_CHECK   Default: 0
   UPSTREAM_SGLANG_VERSION  Default: 0.5.4.post1
+  VLLM_PACKAGE_SPEC        Default: vllm
+  VLLM_ROUTER_PACKAGE_SPEC Default: vllm-router
 EOF
 }
 
@@ -273,6 +279,8 @@ run_part2() {
   set_zshrc_export "SGLANG_VENV_PATH" "$ENV_DIR"
   log "Recording SGLANG_UPSTREAM_VENV_PATH in ~/.zshrc"
   set_zshrc_export "SGLANG_UPSTREAM_VENV_PATH" "$UPSTREAM_ENV_DIR"
+  log "Recording VLLM_VENV_PATH in ~/.zshrc"
+  set_zshrc_export "VLLM_VENV_PATH" "$VLLM_ENV_DIR"
   log "Recording UCX_HOME in ~/.zshrc"
   set_zshrc_export "UCX_HOME" "$UCX_INSTALL_DIR"
 
@@ -339,10 +347,43 @@ run_part2() {
   python -c "import nixl; import sglang; print('nixl and upstream sglang imports ok')"
   uv pip show sglang-router >/dev/null
 
+  log "Creating vLLM venv at $VLLM_ENV_DIR"
+  if [[ -x "${VLLM_ENV_DIR}/bin/python" ]]; then
+    log "Using existing vLLM venv: ${VLLM_ENV_DIR}"
+  else
+    mkdir -p "${BASE_DIR}/envs"
+    uv venv --python 3.12 "$VLLM_ENV_DIR"
+  fi
+
+  log "Installing vLLM packages into $VLLM_ENV_DIR"
+  BASE_DIR="$BASE_DIR" \
+  UV_VENV_DIR="$VLLM_ENV_DIR" \
+  VLLM_PACKAGE_SPEC="$VLLM_PACKAGE_SPEC" \
+  VLLM_ROUTER_PACKAGE_SPEC="$VLLM_ROUTER_PACKAGE_SPEC" \
+  bash "$REPO_DIR/install-vllm.sh"
+
+  log "Installing NIXL into vLLM venv at $VLLM_ENV_DIR"
+  BASE_DIR="$BASE_DIR" \
+  UCX_VERSION="$UCX_VERSION" \
+  UV_VENV_DIR="$VLLM_ENV_DIR" \
+  NIXL_DIR="$NIXL_DIR" \
+  UCX_PATH="$UCX_INSTALL_DIR" \
+  CUDA_HOME="$CUDA_HOME" \
+  bash "$REPO_DIR/install-nixl.sh"
+
+  log "Running vLLM smoke checks"
+  # shellcheck disable=SC1090
+  source "${VLLM_ENV_DIR}/bin/activate"
+  export LD_LIBRARY_PATH="${VLLM_ENV_DIR}/lib:${VLLM_ENV_DIR}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+  python -c "import nixl; import vllm; import vllm_router.launch_router; print('nixl, vllm, and vllm_router imports ok')"
+  vllm --help >/dev/null
+  python -m vllm_router.launch_router --help >/dev/null
+
   log "part2 complete"
   log "Artifacts:"
   log "  ENV_DIR=$ENV_DIR"
   log "  UPSTREAM_ENV_DIR=$UPSTREAM_ENV_DIR"
+  log "  VLLM_ENV_DIR=$VLLM_ENV_DIR"
   log "  SGLANG_DIR=$SGLANG_DIR"
   log "  NIXL_DIR=$NIXL_DIR"
   log "  UCX_INSTALL_DIR=$UCX_INSTALL_DIR"
