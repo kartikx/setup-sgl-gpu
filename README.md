@@ -85,6 +85,7 @@ SET_DEFAULT_SHELL=0
 SKIP_GITHUB_CHECK=1
 VLLM_PACKAGE_SPEC=vllm
 VLLM_ROUTER_PACKAGE_SPEC=vllm-router
+FIX_TORCHVISION=1
 ```
 
 ## Troubleshooting
@@ -93,6 +94,20 @@ If CUDA is not under `/usr/local/cuda`, pass the correct path to `part2`:
 
 ```bash
 BASE_DIR="$HOME" CUDA_HOME=/path/to/cuda ./automated/bootstrap-gpu.sh part2
+```
+
+If the vLLM smoke check fails with `RuntimeError: operator torchvision::nms does not exist`,
+the vLLM venv has a `torch` / `torchvision` wheel mismatch. Re-run the vLLM installer,
+which repairs `torchvision` by default:
+
+```bash
+BASE_DIR="$HOME" ./install-vllm.sh
+```
+
+To skip that repair step:
+
+```bash
+FIX_TORCHVISION=0 BASE_DIR="$HOME" ./install-vllm.sh
 ```
 
 If `import nixl` fails with `libnixl.so: cannot open shared object file`:
