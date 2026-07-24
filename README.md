@@ -56,7 +56,7 @@ ssh -T git@github.com
 source ~/.zshrc
 ```
 
-`setup-cpu.sh` installs the common base packages, `uv`, Codex CLI, `fzf`, `zoxide`, `nvim`, tracked dotfiles, and sets zsh as the default shell. Codex installation, dotfile installation, and the default-shell change are enabled by default. It does not install CUDA, UCX, NIXL, SGLang, or create venvs.
+`setup-cpu.sh` installs the common base packages, `uv`, Codex CLI, `fzf`, `zoxide`, `nvim`, tracked dotfiles, sets the p10k prompt label to `aws-cpu`, and sets zsh as the default shell. Codex installation, dotfile installation, and the default-shell change are enabled by default. It does not install CUDA, UCX, NIXL, SGLang, or create venvs.
 
 ## One-Shot Run
 
@@ -104,6 +104,7 @@ CUDA_HOME=/usr/local/cuda
 INSTALL_CODEX=1
 INSTALL_DOTFILES=1
 SET_DEFAULT_SHELL=1
+CPU_REMOTE_NAME=aws-cpu
 SKIP_GITHUB_CHECK=1
 VLLM_PACKAGE_SPEC=vllm
 VLLM_ROUTER_PACKAGE_SPEC=vllm-router

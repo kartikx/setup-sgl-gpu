@@ -7,6 +7,7 @@ GITHUB_SSH_KEY_PATH="${GITHUB_SSH_KEY_PATH:-$HOME/.ssh/id_ed25519_github}"
 INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_DOTFILES="${INSTALL_DOTFILES:-1}"
 SET_DEFAULT_SHELL="${SET_DEFAULT_SHELL:-1}"
+CPU_REMOTE_NAME="${CPU_REMOTE_NAME:-aws-cpu}"
 
 log() {
   echo "[setup-cpu] $*"
@@ -99,11 +100,28 @@ install_dotfiles() {
 
   log "Copying tracked home configs"
   bash "$REPO_DIR/scripts/copy-home-configs.sh"
+  log "Setting p10k remote label to ${CPU_REMOTE_NAME}"
+  set_zshrc_export "REMOTE_NAME" "$CPU_REMOTE_NAME"
 
   if [[ "$SET_DEFAULT_SHELL" == "1" ]]; then
     log "Setting default shell to zsh"
     sudo chsh -s "$(command -v zsh)" "$USER"
   fi
+}
+
+set_zshrc_export() {
+  local name="$1"
+  local value="$2"
+  local zshrc_path="${ZSHRC_PATH:-$HOME/.zshrc}"
+  local tmp_file
+
+  mkdir -p "$(dirname "$zshrc_path")"
+  touch "$zshrc_path"
+
+  tmp_file="$(mktemp)"
+  grep -v "^export ${name}=" "$zshrc_path" > "$tmp_file" || true
+  printf '\nexport %s=%q\n' "$name" "$value" >> "$tmp_file"
+  mv "$tmp_file" "$zshrc_path"
 }
 
 main() {
