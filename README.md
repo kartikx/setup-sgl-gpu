@@ -56,7 +56,7 @@ ssh -T git@github.com
 source ~/.zshrc
 ```
 
-`setup-cpu.sh` installs the common base packages, `uv`, Codex CLI, `fzf`, `zoxide`, `nvim`, and the tracked dotfiles. It does not install CUDA, UCX, NIXL, SGLang, or create venvs.
+`setup-cpu.sh` installs the common base packages, `uv`, Codex CLI, `fzf`, `zoxide`, `nvim`, tracked dotfiles, and sets zsh as the default shell. Codex installation, dotfile installation, and the default-shell change are enabled by default. It does not install CUDA, UCX, NIXL, SGLang, or create venvs.
 
 ## One-Shot Run
 
@@ -101,15 +101,17 @@ Common overrides:
 ```bash
 BASE_DIR="$HOME"
 CUDA_HOME=/usr/local/cuda
-INSTALL_CODEX=0
-INSTALL_DOTFILES=0
-SET_DEFAULT_SHELL=0
+INSTALL_CODEX=1
+INSTALL_DOTFILES=1
+SET_DEFAULT_SHELL=1
 SKIP_GITHUB_CHECK=1
 VLLM_PACKAGE_SPEC=vllm
 VLLM_ROUTER_PACKAGE_SPEC=vllm-router
 FIX_TORCHVISION=1
 UNINSTALL_BROKEN_TORCHVISION=1
 ```
+
+Set `INSTALL_CODEX=0`, `INSTALL_DOTFILES=0`, or `SET_DEFAULT_SHELL=0` only when you want to skip those default actions.
 
 ## Troubleshooting
 
