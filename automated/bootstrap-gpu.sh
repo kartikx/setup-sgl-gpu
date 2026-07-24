@@ -371,6 +371,13 @@ run_part2() {
   CUDA_HOME="$CUDA_HOME" \
   bash "$REPO_DIR/install-nixl.sh"
 
+  log "Repairing vLLM torchvision compatibility after NIXL install"
+  BASE_DIR="$BASE_DIR" \
+  UV_VENV_DIR="$VLLM_ENV_DIR" \
+  INSTALL_VLLM_PACKAGES=0 \
+  VERIFY_VLLM=0 \
+  bash "$REPO_DIR/install-vllm.sh"
+
   log "Running vLLM smoke checks"
   # shellcheck disable=SC1090
   source "${VLLM_ENV_DIR}/bin/activate"

@@ -5,7 +5,10 @@ BASE_DIR="${BASE_DIR:-/mnt/data}"
 UV_VENV_DIR="${UV_VENV_DIR:-${BASE_DIR}/envs/vllm}"
 VLLM_PACKAGE_SPEC="${VLLM_PACKAGE_SPEC:-vllm}"
 VLLM_ROUTER_PACKAGE_SPEC="${VLLM_ROUTER_PACKAGE_SPEC:-vllm-router}"
+INSTALL_VLLM_PACKAGES="${INSTALL_VLLM_PACKAGES:-1}"
 FIX_TORCHVISION="${FIX_TORCHVISION:-1}"
+UNINSTALL_BROKEN_TORCHVISION="${UNINSTALL_BROKEN_TORCHVISION:-1}"
+VERIFY_VLLM="${VERIFY_VLLM:-1}"
 
 log() {
   echo "[install-vllm] $*"
@@ -22,14 +25,41 @@ fi
 source "$ACTIVATE_SCRIPT"
 export PATH="$HOME/.local/bin:${PATH}"
 
-log "Installing vLLM package: ${VLLM_PACKAGE_SPEC}"
-uv pip install --reinstall --upgrade "${VLLM_PACKAGE_SPEC}"
+ensure_torchvision_usable_or_absent() {
+  local failure_message="$1"
 
-log "Installing vLLM router package: ${VLLM_ROUTER_PACKAGE_SPEC}"
-uv pip install --reinstall --upgrade "${VLLM_ROUTER_PACKAGE_SPEC}"
+  if python - <<'PY' >/dev/null 2>&1
+import importlib.util
+import sys
 
-if [[ "$FIX_TORCHVISION" == "1" ]]; then
-  TORCHVISION_REPAIR="$(python - <<'PY'
+if importlib.util.find_spec("torchvision") is None:
+    sys.exit(0)
+
+import torchvision
+from torchvision.ops import nms
+PY
+  then
+    log "torchvision is usable or absent"
+    return
+  fi
+
+  if [[ "$UNINSTALL_BROKEN_TORCHVISION" != "1" ]]; then
+    log "$failure_message"
+    return 1
+  fi
+
+  log "$failure_message; uninstalling torchvision so transformers skips it"
+  uv pip uninstall -y torchvision || true
+}
+
+repair_torchvision() {
+  if [[ "$FIX_TORCHVISION" != "1" ]]; then
+    log "Skipping torchvision repair because FIX_TORCHVISION=$FIX_TORCHVISION"
+    return
+  fi
+
+  local repair_spec
+  repair_spec="$(python - <<'PY'
 import re
 import sys
 
@@ -63,23 +93,62 @@ print(f"{torchvision_version} {index_url}")
 PY
 )"
 
-  if [[ "$TORCHVISION_REPAIR" == SKIP* ]]; then
-    log "$TORCHVISION_REPAIR"
-  else
-    read -r TORCHVISION_VERSION TORCHVISION_INDEX_URL <<<"$TORCHVISION_REPAIR"
-    log "Installing torchvision==${TORCHVISION_VERSION} from ${TORCHVISION_INDEX_URL}"
-    uv pip install --reinstall --no-deps \
-      --index-url "$TORCHVISION_INDEX_URL" \
-      "torchvision==${TORCHVISION_VERSION}"
+  if [[ "$repair_spec" == SKIP* ]]; then
+    log "$repair_spec"
+    ensure_torchvision_usable_or_absent "torchvision compatibility could not be inferred and installed torchvision is broken"
+    return
   fi
+
+  local torchvision_version
+  local torchvision_index_url
+  read -r torchvision_version torchvision_index_url <<<"$repair_spec"
+
+  log "Installing torchvision==${torchvision_version} from ${torchvision_index_url}"
+  if ! uv pip install --reinstall --no-deps \
+      --index-url "$torchvision_index_url" \
+      "torchvision==${torchvision_version}"; then
+    if [[ "$UNINSTALL_BROKEN_TORCHVISION" != "1" ]]; then
+      return 1
+    fi
+    log "torchvision repair install failed; uninstalling torchvision so transformers skips it"
+    uv pip uninstall -y torchvision || true
+    return
+  fi
+
+  ensure_torchvision_usable_or_absent "torchvision import is still broken after installing the matching wheel"
+}
+
+if [[ "$INSTALL_VLLM_PACKAGES" == "1" ]]; then
+  log "Installing vLLM package: ${VLLM_PACKAGE_SPEC}"
+  uv pip install --reinstall --upgrade "${VLLM_PACKAGE_SPEC}"
+
+  log "Installing vLLM router package: ${VLLM_ROUTER_PACKAGE_SPEC}"
+  uv pip install --reinstall --upgrade "${VLLM_ROUTER_PACKAGE_SPEC}"
+else
+  log "Skipping vLLM package install because INSTALL_VLLM_PACKAGES=$INSTALL_VLLM_PACKAGES"
 fi
 
-log "Verifying vLLM imports and CLIs"
-python -c "import torchvision; from torchvision.ops import nms; print('torchvision nms ok')"
-python -c "import vllm; import vllm_router.launch_router; print(vllm.__file__)"
-vllm --help >/dev/null
-python -m vllm_router.launch_router --help >/dev/null
-uv pip show vllm >/dev/null
-uv pip show vllm-router >/dev/null
+repair_torchvision
+
+if [[ "$VERIFY_VLLM" == "1" ]]; then
+  log "Verifying vLLM imports and CLIs"
+  python - <<'PY'
+import importlib.util
+
+if importlib.util.find_spec("torchvision") is None:
+    print("torchvision not installed; transformers will skip it")
+else:
+    import torchvision
+    from torchvision.ops import nms
+    print("torchvision nms ok")
+PY
+  python -c "import vllm; import vllm_router.launch_router; print(vllm.__file__)"
+  vllm --help >/dev/null
+  python -m vllm_router.launch_router --help >/dev/null
+  uv pip show vllm >/dev/null
+  uv pip show vllm-router >/dev/null
+else
+  log "Skipping vLLM verification because VERIFY_VLLM=$VERIFY_VLLM"
+fi
 
 log "Done."

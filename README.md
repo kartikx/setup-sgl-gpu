@@ -72,7 +72,7 @@ With `BASE_DIR="$HOME"`:
 10. Create `$HOME/envs/vllm`.
 11. Install `vllm` and `vllm-router` into `$HOME/envs/vllm`.
 12. Install NIXL into `$HOME/envs/vllm`.
-13. Smoke test the vLLM env.
+13. Re-check `torchvision` compatibility and smoke test the vLLM env.
 
 Common overrides:
 
@@ -86,6 +86,7 @@ SKIP_GITHUB_CHECK=1
 VLLM_PACKAGE_SPEC=vllm
 VLLM_ROUTER_PACKAGE_SPEC=vllm-router
 FIX_TORCHVISION=1
+UNINSTALL_BROKEN_TORCHVISION=1
 ```
 
 ## Troubleshooting
@@ -98,16 +99,16 @@ BASE_DIR="$HOME" CUDA_HOME=/path/to/cuda ./automated/bootstrap-gpu.sh part2
 
 If the vLLM smoke check fails with `RuntimeError: operator torchvision::nms does not exist`,
 the vLLM venv has a `torch` / `torchvision` wheel mismatch. Re-run the vLLM installer,
-which repairs `torchvision` by default:
+which repairs `torchvision` by default and uninstalls it if the matching wheel still fails:
 
 ```bash
-BASE_DIR="$HOME" ./install-vllm.sh
+BASE_DIR="$HOME" UV_VENV_DIR="$HOME/envs/vllm" INSTALL_VLLM_PACKAGES=0 ./install-vllm.sh
 ```
 
-To skip that repair step:
+To keep a broken `torchvision` install instead of removing it:
 
 ```bash
-FIX_TORCHVISION=0 BASE_DIR="$HOME" ./install-vllm.sh
+UNINSTALL_BROKEN_TORCHVISION=0 BASE_DIR="$HOME" UV_VENV_DIR="$HOME/envs/vllm" INSTALL_VLLM_PACKAGES=0 ./install-vllm.sh
 ```
 
 If `import nixl` fails with `libnixl.so: cannot open shared object file`:
