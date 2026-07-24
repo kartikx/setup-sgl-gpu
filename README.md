@@ -2,7 +2,9 @@
 
 Bootstrap a fresh AWS GPU VM for the SGLang + UCX + NIXL workflow.
 
-The main entrypoint is `automated/bootstrap-gpu.sh`. Run `part1`, add credentials, then run `part2`.
+The main GPU entrypoint is `automated/bootstrap-gpu.sh`. Run `part1`, add credentials, then run `part2`.
+
+For a CPU-only VM, use `setup-cpu.sh` after creating the GitHub SSH key.
 
 ## Prerequisites
 
@@ -35,6 +37,26 @@ source ~/.zshrc
 ```
 
 After `part2`, `SGLANG_VENV_PATH`, `SGLANG_UPSTREAM_VENV_PATH`, and `VLLM_VENV_PATH` point at the created venvs.
+
+## CPU VM Flow
+
+Use this for a non-GPU VM that only needs the shared developer tooling and shell setup.
+
+```bash
+ssh ubuntu@<instance-ip>
+
+git clone https://github.com/kartikx/setup-sgl-gpu.git
+cd setup-sgl-gpu
+
+./generate-keys.sh
+# Add the printed public key to GitHub.
+
+ssh -T git@github.com
+./setup-cpu.sh
+source ~/.zshrc
+```
+
+`setup-cpu.sh` installs the common base packages, `uv`, Codex CLI, `fzf`, `zoxide`, `nvim`, and the tracked dotfiles. It does not install CUDA, UCX, NIXL, SGLang, or create venvs.
 
 ## One-Shot Run
 
